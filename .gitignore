@@ -1,0 +1,29 @@
+# Build outputs
+bin/
+obj/
+publish/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Rider
+.idea/
+
+# Logs
+*.log
+
+# Local data
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Environment
+.env
+appsettings.Development.json
+
+# Media output (generated strm files)
+media/

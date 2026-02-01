@@ -1,0 +1,12 @@
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/*.user
+**/*.md
+**/Thumbs.db
+**/.DS_Store
+*.http
+*.slnx

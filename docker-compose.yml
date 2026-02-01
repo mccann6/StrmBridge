@@ -1,0 +1,15 @@
+services:
+  strmbridge:
+    build: ./StrmBridge
+    container_name: strmbridge
+    restart: unless-stopped
+    ports:
+      - "9847:9847"
+    environment:
+      - Providers__Torbox__ApiKey=${TORBOX_API_KEY}
+      - App__ServiceBaseUrl=http://localhost:9847
+      # Optional: customize sync interval (default: 300 seconds)
+      # - App__SyncIntervalSeconds=300
+    volumes:
+      - ./data:/app/data      # Database
+      - ./media:/app/media    # .strm files - point your media server here

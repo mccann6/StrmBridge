@@ -11,7 +11,7 @@ public class TorboxSettings : IApiSettings
 
     // IProviderSettings
     public string ProviderName => "Torbox";
-    public bool IsEnabled { get; set; } = true;
+    public bool IsEnabled { get; set; } = false;
 
     // IApiSettings
     public string ApiBaseUrl { get; set; } = "https://api.torbox.app";

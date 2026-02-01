@@ -22,19 +22,21 @@ When a media player opens a `.strm` file, it calls back to StrmBridge which redi
 ## Supported Providers
 
 - Torbox
+- Real-Debrid
 
 ## Requirements
 
 - Docker and Docker Compose
-- A Torbox account with API key
+- An account with at least one supported debrid provider
 
 ## Quick Start
 
 1. Clone the repository
 
-2. Create a `.env` file:
+2. Create a `.env` file with your provider API keys:
 ```
-TORBOX_API_KEY=your_api_key_here
+TORBOX_API_KEY=your_torbox_api_key
+REALDEBRID_API_KEY=your_realdebrid_api_key
 ```
 
 3. Run with Docker Compose:
@@ -50,11 +52,26 @@ The service syncs every 5 minutes by default.
 
 Environment variables can be set in `docker-compose.yml` or via `.env`:
 
+### General Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `App__ServiceBaseUrl` | Base URL for stream redirects | `http://localhost:9847` |
+| `App__SyncIntervalSeconds` | Sync interval in seconds | `300` |
+
+### Torbox
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `Providers__Torbox__ApiKey` | Your Torbox API key | Required |
-| `App__ServiceBaseUrl` | Base URL for stream redirects | `http://localhost:9847` |
-| `App__SyncIntervalSeconds` | Sync interval in seconds | `300` |
+| `Providers__Torbox__IsEnabled` | Enable/disable provider | `false` |
+
+### Real-Debrid
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `Providers__RealDebrid__ApiKey` | Your Real-Debrid API key | Required |
+| `Providers__RealDebrid__IsEnabled` | Enable/disable provider | `false` |
 
 ## API Endpoints
 

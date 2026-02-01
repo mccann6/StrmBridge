@@ -6,9 +6,9 @@ namespace StrmBridge.Data;
 /// <summary>
 /// Database context for the StrmBridge application
 /// </summary>
-public class LinkerDbContext : DbContext
+public class StrmBridgeDbContext : DbContext
 {
-    public LinkerDbContext(DbContextOptions<LinkerDbContext> options) 
+    public StrmBridgeDbContext(DbContextOptions<StrmBridgeDbContext> options) 
         : base(options)
     {
     }

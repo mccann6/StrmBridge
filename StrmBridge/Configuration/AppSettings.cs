@@ -16,8 +16,8 @@ public class AppSettings : IAppSettings
     public int SyncIntervalSeconds { get; set; } = 300;
 
     /// <inheritdoc />
-    public string DatabasePath { get; set; } = "/app/data/linker.db";
+    public string DatabasePath { get; set; } = "/app/data/strmbridge.db";
 
     /// <inheritdoc />
-    public string ServiceBaseUrl { get; set; } = "http://localhost:8080";
+    public string ServiceBaseUrl { get; set; } = "http://localhost:9847";
 }

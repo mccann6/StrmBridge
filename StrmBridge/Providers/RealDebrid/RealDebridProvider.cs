@@ -1,24 +1,24 @@
 using System.Text.RegularExpressions;
 using StrmBridge.Api.Debrid;
-using StrmBridge.Api.Debrid.Torbox;
+using StrmBridge.Api.Debrid.RealDebrid;
 using StrmBridge.Configuration.Interfaces;
 using StrmBridge.Providers.Abstractions;
 
-namespace StrmBridge.Providers.Torbox;
+namespace StrmBridge.Providers.RealDebrid;
 
 /// <summary>
-/// Torbox provider that fetches media library via API
+/// Real-Debrid provider that fetches media library via API
 /// </summary>
-public partial class TorboxProvider : IDebridProvider
+public partial class RealDebridProvider : IDebridProvider
 {
-    private readonly TorboxApiClient _apiClient;
+    private readonly RealDebridApiClient _apiClient;
     private readonly IAppSettings _appSettings;
-    private readonly ILogger<TorboxProvider> _logger;
+    private readonly ILogger<RealDebridProvider> _logger;
 
-    public TorboxProvider(
-        TorboxApiClient apiClient,
+    public RealDebridProvider(
+        RealDebridApiClient apiClient,
         IAppSettings appSettings,
-        ILogger<TorboxProvider> logger)
+        ILogger<RealDebridProvider> logger)
     {
         _apiClient = apiClient;
         _appSettings = appSettings;
@@ -33,11 +33,11 @@ public partial class TorboxProvider : IDebridProvider
     {
         if (!IsEnabled)
         {
-            _logger.LogWarning("Torbox provider is not enabled or configured");
+            _logger.LogWarning("Real-Debrid provider is not enabled or configured");
             return [];
         }
 
-        _logger.LogInformation("Fetching library from Torbox API");
+        _logger.LogInformation("Fetching library from Real-Debrid API");
 
         try
         {
@@ -46,9 +46,8 @@ public partial class TorboxProvider : IDebridProvider
 
             foreach (var torrent in torrents)
             {
-                // Only process completed/cached torrents
-                if (torrent.Status != DebridTorrentStatus.Completed &&
-                    torrent.Status != DebridTorrentStatus.Cached)
+                // Only process completed torrents
+                if (torrent.Status != DebridTorrentStatus.Completed)
                 {
                     _logger.LogDebug(
                         "Skipping torrent {Name} - status is {Status}",
@@ -75,7 +74,6 @@ public partial class TorboxProvider : IDebridProvider
                         FileId = file.Id,
                         TorrentName = torrent.Name,
                         FileName = file.ShortName,
-                        // Use internal redirect URL - keeps API key out of .strm files
                         StreamingUrl = GetInternalStreamUrl(torrent.Id, file.Id),
                         SizeBytes = file.SizeBytes,
                         CreatedAt = torrent.CreatedAt,
@@ -95,35 +93,26 @@ public partial class TorboxProvider : IDebridProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching library from Torbox API");
+            _logger.LogError(ex, "Error fetching library from Real-Debrid API");
             throw;
         }
     }
 
-    /// <summary>
-    /// Generates an internal streaming URL that redirects to Torbox.
-    /// This keeps the API key out of .strm files.
-    /// </summary>
     private string GetInternalStreamUrl(string torrentId, string fileId)
     {
         var baseUrl = _appSettings.ServiceBaseUrl.TrimEnd('/');
         return $"{baseUrl}/api/stream/{ProviderName.ToLowerInvariant()}/{torrentId}/{fileId}";
     }
 
-    /// <summary>
-    /// Detects media type from torrent name and filename
-    /// </summary>
     private static MediaType DetectMediaType(string torrentName, string fileName)
     {
         var combinedName = $"{torrentName} {fileName}".ToLowerInvariant();
 
-        // TV show patterns: S01E01, Season 1, etc.
         if (TvShowPattern().IsMatch(combinedName))
         {
             return MediaType.TvShow;
         }
 
-        // Movie patterns: year in parentheses or brackets
         if (MoviePattern().IsMatch(combinedName))
         {
             return MediaType.Movie;

@@ -23,7 +23,6 @@ publish/
 
 # Environment
 .env
-appsettings.Development.json
 
 # Media output (generated strm files)
 media/

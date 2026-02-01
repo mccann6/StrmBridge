@@ -8,9 +8,9 @@ namespace StrmBridge.Data;
 /// </summary>
 public class MediaItemRepository : IMediaItemRepository
 {
-    private readonly LinkerDbContext _context;
+    private readonly StrmBridgeDbContext _context;
 
-    public MediaItemRepository(LinkerDbContext context)
+    public MediaItemRepository(StrmBridgeDbContext context)
     {
         _context = context;
     }

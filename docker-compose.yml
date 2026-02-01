@@ -6,7 +6,14 @@ services:
     ports:
       - "9847:9847"
     environment:
+      # Torbox
       - Providers__Torbox__ApiKey=${TORBOX_API_KEY}
+      - Providers__Torbox__IsEnabled=true
+      
+      # Real-Debrid
+      - Providers__RealDebrid__ApiKey=${REALDEBRID_API_KEY}
+      - Providers__RealDebrid__IsEnabled=true
+      
       - App__ServiceBaseUrl=http://localhost:9847
       # Optional: customize sync interval (default: 300 seconds)
       # - App__SyncIntervalSeconds=300

@@ -16,4 +16,8 @@ Accept: application/json
 POST {{StrmBridge_HostAddress}}/api/sync/Torbox
 Accept: application/json
 
+### Trigger Sync for Specific Provider
+POST {{StrmBridge_HostAddress}}/api/sync/RealDebrid
+Accept: application/json
+
 ###

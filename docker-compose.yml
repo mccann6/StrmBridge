@@ -1,6 +1,6 @@
 services:
   strmbridge:
-    build: ./StrmBridge
+    image: anthonymccann90/strmbridge:latest
     container_name: strmbridge
     restart: unless-stopped
     ports:

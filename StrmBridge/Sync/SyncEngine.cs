@@ -68,27 +68,48 @@ public class SyncEngine : ISyncEngine
 
         try
         {
-            // Get items from provider API
+            var existingItems = await _repository.GetProviderItemsAsDictionaryAsync(providerName, ct);
+            _logger.LogDebug("Loaded {Count} existing items from database", existingItems.Count);
+
             var providerItems = await provider.GetLibraryAsync(ct);
             _logger.LogInformation(
                 "Found {Count} streamable items from {Provider}",
                 providerItems.Count,
                 providerName);
 
-            var added = 0;
-            var updated = 0;
+            var newItems = new List<TrackedMediaItem>();
+            var seenProviderIds = new HashSet<string>();
             var strmFilesCreated = 0;
-            var seenProviderIds = new List<string>();
+            var updated = 0;
 
             foreach (var item in providerItems)
             {
                 ct.ThrowIfCancellationRequested();
                 seenProviderIds.Add(item.ProviderId);
 
-            var existing = await _repository.GetByProviderIdAsync(item.ProviderId, ct);
+                if (existingItems.TryGetValue(item.ProviderId, out var existing))
+                {
+                    if (existing.Status == MediaItemStatus.Missing)
+                    {
+                        existing.Status = MediaItemStatus.Active;
+                        updated++;
+                    }
 
-            if (existing == null)
-            {
+                    if (existing.StreamingUrl != item.StreamingUrl)
+                    {
+                        if (!string.IsNullOrEmpty(existing.StrmPath))
+                        {
+                            await _strmFileManager.CreateStrmFileAsync(
+                                existing.StrmPath,
+                                item.StreamingUrl,
+                                ct);
+                        }
+                        existing.StreamingUrl = item.StreamingUrl;
+                        updated++;
+                    }
+                }
+                else
+                {
                     var strmPath = GetStrmPath(item.TorrentName, item.FileName, providerName);
 
                     var created = await _strmFileManager.CreateStrmFileAsync(
@@ -101,7 +122,7 @@ public class SyncEngine : ISyncEngine
                         strmFilesCreated++;
                     }
 
-                    var trackedItem = new TrackedMediaItem
+                    newItems.Add(new TrackedMediaItem
                     {
                         ProviderId = item.ProviderId,
                         ProviderName = providerName,
@@ -112,45 +133,24 @@ public class SyncEngine : ISyncEngine
                         StrmPath = strmPath,
                         StreamingUrl = item.StreamingUrl,
                         SizeBytes = item.SizeBytes
-                    };
-
-                    await _repository.AddAsync(trackedItem, ct);
-                    added++;
+                    });
 
                     _logger.LogDebug(
                         "Added new item: {Name} -> {StrmPath}",
                         item.FileName,
                         strmPath);
                 }
-                else
-                {
-                    // Existing item - update last seen time
-                    existing.LastSeenAt = DateTimeOffset.UtcNow;
-
-                    // If it was marked missing, restore it
-                    if (existing.Status == MediaItemStatus.Missing)
-                    {
-                        existing.Status = MediaItemStatus.Active;
-                        updated++;
-                    }
-
-                    // Update streaming URL if changed (API key rotation, etc.)
-                    if (existing.StreamingUrl != item.StreamingUrl && !string.IsNullOrEmpty(existing.StrmPath))
-                    {
-                        await _strmFileManager.CreateStrmFileAsync(
-                            existing.StrmPath,
-                            item.StreamingUrl,
-                            ct);
-                        existing.StreamingUrl = item.StreamingUrl;
-                        updated++;
-                    }
-
-                    await _repository.UpdateAsync(existing, ct);
-                }
             }
 
-            // Mark items that weren't seen as missing and delete their .strm files
-            var missingItems = await _repository.MarkMissingAsync(providerName, seenProviderIds, ct);
+            var missingItems = existingItems.Values
+                .Where(x => x.Status == MediaItemStatus.Active && !seenProviderIds.Contains(x.ProviderId))
+                .ToList();
+
+            foreach (var missing in missingItems)
+            {
+                missing.Status = MediaItemStatus.Missing;
+            }
+
             var strmFilesRemoved = 0;
             foreach (var missing in missingItems)
             {
@@ -168,6 +168,14 @@ public class SyncEngine : ISyncEngine
                 }
             }
 
+            if (newItems.Count > 0)
+            {
+                await _repository.AddRangeAsync(newItems, ct);
+                _logger.LogDebug("Batch inserted {Count} new items", newItems.Count);
+            }
+
+            await _repository.SaveChangesAsync(ct);
+
             if (missingItems.Count > 0)
             {
                 _logger.LogInformation(
@@ -182,7 +190,7 @@ public class SyncEngine : ISyncEngine
             {
                 ProviderName = providerName,
                 ItemsScanned = providerItems.Count,
-                ItemsAdded = added,
+                ItemsAdded = newItems.Count,
                 ItemsUpdated = updated,
                 ItemsMarkedMissing = missingItems.Count,
                 StrmFilesCreated = strmFilesCreated,

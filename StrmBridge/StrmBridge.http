@@ -1,8 +1,8 @@
 # Local dev
-### @StrmBridge_HostAddress = http://localhost:5277
+ @StrmBridge_HostAddress = http://localhost:5277
 
 # Local docker
-@StrmBridge_HostAddress = http://localhost:8080
+# @StrmBridge_HostAddress = http://localhost:9847
 
 ### Get Application Status
 GET {{StrmBridge_HostAddress}}/api/status
@@ -15,10 +15,5 @@ Accept: application/json
 ### Trigger Sync for Specific Provider
 POST {{StrmBridge_HostAddress}}/api/sync/Torbox
 Accept: application/json
-
-### Test Stream Redirect (The Quest 1996)
-# This will return a 302 redirect to the Torbox CDN
-# Your browser/player will follow the redirect automatically
-GET {{StrmBridge_HostAddress}}/api/stream/torbox/7343698/2
 
 ###

@@ -15,6 +15,7 @@ RUN dotnet publish "./StrmBridge.csproj" -c $BUILD_CONFIGURATION -o /app/publish
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 EXPOSE 9847
+ENV ASPNETCORE_HTTP_PORTS=9847
 
 # Create directories for media and data
 RUN mkdir -p /app/media /app/data

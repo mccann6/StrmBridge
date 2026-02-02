@@ -1,6 +1,6 @@
 # StrmBridge
 
-A lightweight service that syncs your debrid provider library to `.strm` files for use with media servers like Plex, Jellyfin, or Emby.
+A lightweight service that syncs your debrid provider library to `.strm` files for use with media servers like Jellyfin.
 
 ## How It Works
 

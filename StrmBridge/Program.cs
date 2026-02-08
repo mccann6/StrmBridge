@@ -21,6 +21,12 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Logging.AddSimpleConsole(options =>
+        {
+            options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+            options.SingleLine = true;
+        });
+
         builder.Services.Configure<AppSettings>(
             builder.Configuration.GetSection(AppSettings.SectionName));
 

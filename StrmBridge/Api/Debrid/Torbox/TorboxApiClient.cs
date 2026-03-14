@@ -111,7 +111,7 @@ public class TorboxApiClient : IDebridApiClient
             CreatedAt = dto.CreatedAt,
             Status = MapStatus(dto.DownloadState),
             Progress = dto.Progress,
-            Files = dto.Files
+            Files = (dto.Files ?? [])
                 .Select(f => new DebridFile
                 {
                     Id = f.Id.ToString(),

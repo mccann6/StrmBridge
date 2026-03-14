@@ -150,7 +150,7 @@ public class RealDebridApiClient : IDebridApiClient
             CreatedAt = dto.Added.HasValue ? new DateTimeOffset(dto.Added.Value, TimeSpan.Zero) : null,
             Status = MapStatus(dto.Status),
             Progress = dto.Progress / 100.0, // RD uses 0-100, we use 0-1
-            Files = files
+            Files = (files ?? [])
                 .Where(f => f.Selected == 1) // Only include selected files
                 .Select((f, index) => new DebridFile
                 {

@@ -95,6 +95,14 @@ public class SyncEngine : ISyncEngine
                         updated++;
                     }
 
+                    var expectedPath = GetStrmPath(item.TorrentName, item.FileName, providerName);
+                    if (!string.IsNullOrEmpty(existing.StrmPath) && existing.StrmPath != expectedPath)
+                    {
+                        await _strmFileManager.MoveStrmFileAsync(existing.StrmPath, expectedPath, ct);
+                        existing.StrmPath = expectedPath;
+                        updated++;
+                    }
+
                     if (existing.StreamingUrl != item.StreamingUrl)
                     {
                         if (!string.IsNullOrEmpty(existing.StrmPath))

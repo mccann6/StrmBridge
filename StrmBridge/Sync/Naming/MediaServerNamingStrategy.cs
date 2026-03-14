@@ -64,38 +64,37 @@ public partial class MediaServerNamingStrategy : IMediaNamingStrategy
     {
         var cleanedTorrent = StripPrefixes(torrentName);
         var cleanedFile = StripPrefixes(fileName);
-        
+
+        string basePath;
+
         var tvMatch = TvShowParseRegex().Match(cleanedFile);
         if (tvMatch.Success)
         {
             var showName = tvMatch.Groups["show"].Value.Trim();
-            if (string.IsNullOrWhiteSpace(showName))
-            {
-                return GetTvShowFilePathWithShowName(tvMatch, cleanedTorrent);
-            }
-            return GetTvShowFilePath(tvMatch, cleanedFile);
+            basePath = string.IsNullOrWhiteSpace(showName)
+                ? GetTvShowFilePathWithShowName(tvMatch, cleanedTorrent)
+                : GetTvShowFilePath(tvMatch, cleanedFile);
         }
-        
-        tvMatch = TvShowParseRegex().Match(cleanedTorrent);
-        if (tvMatch.Success)
+        else if ((tvMatch = TvShowParseRegex().Match(cleanedTorrent)).Success)
         {
-            return GetTvShowFilePathFromTorrent(tvMatch, cleanedFile);
+            basePath = GetTvShowFilePathFromTorrent(tvMatch, cleanedFile);
+        }
+        else
+        {
+            var movieMatch = MovieParseRegex().Match(cleanedTorrent);
+            if (!movieMatch.Success)
+                movieMatch = MovieParseRegex().Match(cleanedFile);
+
+            basePath = movieMatch.Success
+                ? GetMovieFilePath(movieMatch, cleanedFile)
+                : Path.Combine("Other", CleanTitle(cleanedFile) + ".strm");
         }
 
-        var movieMatch = MovieParseRegex().Match(cleanedTorrent);
-        if (movieMatch.Success)
-        {
-            return GetMovieFilePath(movieMatch, cleanedFile);
-        }
+        var qualitySuffix = ExtractQualitySuffix(torrentName, fileName);
+        if (qualitySuffix.Length > 0)
+            basePath = basePath.Replace(".strm", $" - {qualitySuffix}.strm");
 
-        movieMatch = MovieParseRegex().Match(cleanedFile);
-        if (movieMatch.Success)
-        {
-            return GetMovieFilePath(movieMatch, cleanedFile);
-        }
-
-        var fallbackName = CleanTitle(cleanedFile);
-        return Path.Combine("Other", fallbackName + ".strm");
+        return basePath;
     }
 
     /// <summary>
@@ -257,6 +256,71 @@ public partial class MediaServerNamingStrategy : IMediaNamingStrategy
         return clean.Trim(' ', '-');
     }
 
+    private static readonly HashSet<string> NonGroupSuffixes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "dl", "rip", "ray", "remux", "hdtv", "bluray", "webrip", "webdl",
+        "bdrip", "brrip", "dvdrip", "hdrip",
+        "x264", "x265", "h264", "h265", "hevc", "avc", "xvid", "divx",
+        "1080p", "720p", "2160p", "480p", "576p", "4k",
+        "aac", "ac3", "dts", "flac", "mp3",
+        "hdr", "hdr10", "sdr", "dv"
+    };
+
+    private static string ExtractQualitySuffix(string torrentName, string fileName)
+    {
+        var parts = new List<string>();
+
+        var resolution = MatchFirst(ResolutionExtractRegex(), torrentName, fileName);
+        if (resolution != null)
+            parts.Add(resolution.ToLowerInvariant() == "4k" ? "2160p" : resolution.ToLowerInvariant());
+
+        var source = NormalizeSource(MatchFirst(SourceExtractRegex(), torrentName, fileName));
+        if (source != null)
+            parts.Add(source);
+
+        var group = MatchReleaseGroup(torrentName) ?? MatchReleaseGroup(fileName);
+
+        var suffix = string.Join(" ", parts);
+        if (group != null)
+            suffix = suffix.Length > 0 ? $"{suffix}-{group}" : group;
+
+        return suffix;
+    }
+
+    private static string? MatchFirst(Regex regex, string primary, string secondary)
+    {
+        var match = regex.Match(primary);
+        if (match.Success) return match.Groups[1].Value;
+        match = regex.Match(secondary);
+        return match.Success ? match.Groups[1].Value : null;
+    }
+
+    private static string? NormalizeSource(string? value)
+    {
+        if (value == null) return null;
+        return value.Replace(" ", "-").Replace("_", "-").ToUpperInvariant() switch
+        {
+            "WEB-DL" or "WEBDL" => "WEB-DL",
+            "WEBRIP" => "WEBRip",
+            "BLURAY" or "BLU-RAY" => "BluRay",
+            "REMUX" => "REMUX",
+            "BDRIP" => "BDRip",
+            "BRRIP" => "BRRip",
+            "HDTV" => "HDTV",
+            "DVDRIP" => "DVDRip",
+            "HDRIP" => "HDRip",
+            _ => value
+        };
+    }
+
+    private static string? MatchReleaseGroup(string input)
+    {
+        var match = ReleaseGroupExtractRegex().Match(input);
+        if (!match.Success) return null;
+        var group = match.Groups[1].Value;
+        return NonGroupSuffixes.Contains(group) ? null : group;
+    }
+
     // === REGEX PATTERNS (Source Generated) ===
 
     // Matches: "www.site.com - " prefixes
@@ -293,6 +357,15 @@ public partial class MediaServerNamingStrategy : IMediaNamingStrategy
     // Matches: "Movie.Name.2024.1080p" or "Movie Name (2024)" etc.
     [GeneratedRegex(@"^(?<title>.+?)[.\s\-_\(]+(?<year>(?:19|20)\d{2})[\s.\-_\)]", RegexOptions.IgnoreCase)]
     private static partial Regex MovieParseRegex();
+
+    [GeneratedRegex(@"\b(2160p|1080p|720p|480p|576p|4[Kk])\b", RegexOptions.IgnoreCase)]
+    private static partial Regex ResolutionExtractRegex();
+
+    [GeneratedRegex(@"\b(WEB[-\s]?DL|WEBRip|Blu[-\s]?Ray|BDRip|BRRip|HDTV|DVDRip|HDRip|REMUX)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex SourceExtractRegex();
+
+    [GeneratedRegex(@"-([A-Za-z0-9]{2,})(?:\.[a-zA-Z0-9]{2,4})?$")]
+    private static partial Regex ReleaseGroupExtractRegex();
 }
 
 public enum DetectedMediaType

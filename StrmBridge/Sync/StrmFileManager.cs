@@ -92,9 +92,30 @@ public class StrmFileManager : IStrmFileManager
         return content.Trim();
     }
 
-    /// <summary>
-    /// Recursively removes empty parent directories
-    /// </summary>
+    public Task<bool> MoveStrmFileAsync(string oldPath, string newPath, CancellationToken ct = default)
+    {
+        try
+        {
+            if (!File.Exists(oldPath))
+                return Task.FromResult(false);
+
+            var newDir = Path.GetDirectoryName(newPath);
+            if (!string.IsNullOrEmpty(newDir) && !Directory.Exists(newDir))
+                Directory.CreateDirectory(newDir);
+
+            File.Move(oldPath, newPath, overwrite: true);
+            _logger.LogInformation("Moved .strm file: {OldPath} -> {NewPath}", oldPath, newPath);
+
+            CleanupEmptyDirectories(Path.GetDirectoryName(oldPath));
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to move .strm file: {OldPath} -> {NewPath}", oldPath, newPath);
+            return Task.FromResult(false);
+        }
+    }
+
     private void CleanupEmptyDirectories(string? directoryPath)
     {
         if (string.IsNullOrEmpty(directoryPath))

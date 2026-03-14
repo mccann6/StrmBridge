@@ -29,4 +29,6 @@ public interface IStrmFileManager
     /// Gets the URL from an existing .strm file
     /// </summary>
     Task<string?> GetStrmUrlAsync(string strmPath, CancellationToken ct = default);
+
+    Task<bool> MoveStrmFileAsync(string oldPath, string newPath, CancellationToken ct = default);
 }

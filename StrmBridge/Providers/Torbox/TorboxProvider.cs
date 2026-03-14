@@ -57,12 +57,19 @@ public partial class TorboxProvider : IDebridProvider
                     continue;
                 }
 
-                // Get streamable files from this torrent
-                var streamableFiles = torrent.Files.Where(f => f.ShouldSync).ToList();
+                var allFiles = torrent.Files;
+                var streamableFiles = allFiles.Where(f => f.ShouldSync).ToList();
 
                 if (streamableFiles.Count == 0)
                 {
-                    _logger.LogDebug("No streamable files in torrent: {Name}", torrent.Name);
+                    foreach (var f in allFiles)
+                    {
+                        _logger.LogDebug(
+                            "Skipped file in '{Torrent}': Name={Name}, ShortName={ShortName}, Size={Size}MB, IsVideo={IsVideo}, IsSample={IsSample}, MimeType={Mime}",
+                            torrent.Name, f.Name, f.ShortName, f.SizeBytes / (1024 * 1024), f.IsVideo, f.IsSample, f.MimeType);
+                    }
+                    if (allFiles.Count == 0)
+                        _logger.LogDebug("Torrent '{Name}' has no files at all", torrent.Name);
                     continue;
                 }
 
